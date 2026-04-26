@@ -201,16 +201,24 @@ class LoginWindow(tk.Tk):
                 for tag in ("del_bg", "del_x"):
                     cv.tag_bind(tag, "<Button-1>",
                                 lambda _e, n=name: self._delete_profile(n))
+                cv.tag_raise("del_bg")
+                cv.tag_raise("del_x")
 
             def _on(_e):
                 if outer._img_h:
                     cv.delete("avt")
                     cv.create_image(size//2, size//2, anchor="center",
                                     image=outer._img_h, tags="avt")
+                    if self._edit_mode:
+                        cv.tag_raise("del_bg")
+                        cv.tag_raise("del_x")
             def _off(_e):
                 cv.delete("avt")
                 cv.create_image(size//2, size//2, anchor="center",
                                 image=outer._img_n, tags="avt")
+                if self._edit_mode:
+                    cv.tag_raise("del_bg")
+                    cv.tag_raise("del_x")
         else:
             # fallback plain oval
             pad = 4
@@ -235,17 +243,25 @@ class LoginWindow(tk.Tk):
                 for tag in ("del_bg", "del_x"):
                     cv.tag_bind(tag, "<Button-1>",
                                 lambda _e, n=name: self._delete_profile(n))
+                cv.tag_raise("del_bg")
+                cv.tag_raise("del_x")
 
             def _on(_e, cv=cv, c=colour, s=size, p=pad):
                 cv.delete("circle")
                 cv.create_oval(p-4, p-4, s-p+4, s-p+4,
                                fill=c, outline="white", width=4, tags="circle")
                 cv.tag_raise("letter")
+                if self._edit_mode:
+                    cv.tag_raise("del_bg")
+                    cv.tag_raise("del_x")
             def _off(_e, cv=cv, c=colour, s=size, p=pad):
                 cv.delete("circle")
                 cv.create_oval(p, p, s-p, s-p,
                                fill=c, outline="", tags="circle")
                 cv.tag_raise("letter")
+                if self._edit_mode:
+                    cv.tag_raise("del_bg")
+                    cv.tag_raise("del_x")
 
         lbl = tk.Label(outer, text=name, bg="#0a0f1e", fg="#e2e8f0",
                        font=("Segoe UI", 13, "bold"))
@@ -352,6 +368,12 @@ class LoginWindow(tk.Tk):
         self._render_profiles()
 
     def _delete_profile(self, name: str):
+        # Bring window to front so dialogs appear on top of it
+        self.lift()
+        self.focus_force()
+        self.attributes("-topmost", True)
+        self.after(100, lambda: self.attributes("-topmost", False))
+
         pin = cfg.get_profile_pin(name)
         if pin:
             entered = simpledialog.askstring(
@@ -362,13 +384,16 @@ class LoginWindow(tk.Tk):
                 return
             ok, msg = cfg.delete_profile(name, entered.strip())
         else:
-            if not messagebox.askyesno(
-                "Delete", f"Delete '{name}' and all their data?",
-                parent=self):
+            confirmed = messagebox.askyesno(
+                "Delete profile",
+                f"Delete '{name}' and all their data? This cannot be undone.",
+                parent=self)
+            if not confirmed:
                 return
             ok, msg = cfg.delete_profile(name)
         if not ok:
             messagebox.showerror("Error", msg, parent=self)
+            return
         self._render_profiles()
 
     def _create_popup(self):

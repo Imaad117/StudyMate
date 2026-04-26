@@ -6,12 +6,13 @@ STORAGE_DIR  = APP_DATA_DIR / "storage"   # legacy only
 PROFILES_DIR = APP_DATA_DIR / "profiles"
 
 # ── active profile ────────────────────────────────────────────────────────────
-_active_profile: str = "default"
+_active_profile: str | None = None
 
 def set_active_profile(name: str) -> None:
     global _active_profile
-    _active_profile = name.strip() or "default"
-    get_profile_dir().mkdir(parents=True, exist_ok=True)
+    _active_profile = name.strip() if name and name.strip() else None
+    if _active_profile:
+        get_profile_dir().mkdir(parents=True, exist_ok=True)
 
 def get_active_profile() -> str:
     return _active_profile
